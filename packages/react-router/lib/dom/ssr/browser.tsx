@@ -124,11 +124,7 @@ function createHydratedRouter(propRoutes?: DataRouteObject[]): RemixRouter {
     }
 
     try {
-      validatePropRoutes(
-        propRoutes,
-        rootRoute.children,
-        ssrInfo.context.isSpaMode === true
-      );
+      validatePropRoutes(propRoutes, rootRoute.children);
 
       // If a route doesn't have a loader, add a dummy hydrating loader to stop
       // rendering at that level for hydration
@@ -290,15 +286,8 @@ function addPropRoutesToRemix(
 
 function validatePropRoutes(
   propRoutes: DataRouteObject[],
-  rootChildren: DataRouteObject[],
-  isSpaMode: boolean
+  rootChildren: DataRouteObject[]
 ) {
-  if (!isSpaMode) {
-    throw new Error(
-      `The <HydratedRouter routes> prop is only usable in SPA Mode.`
-    );
-  }
-
   let existingRootChildren = new Set();
   for (let child of rootChildren) {
     if (child.index) {
