@@ -97,6 +97,8 @@ See [Deploying][deploying] for more information on deploying a server.
 
 ## Route Modules
 
+TODO: Ensure this discussed moving from `RouterProvider` -> `<HydratedRouter routes={routes}>` -> Route Modules.
+
 You can incrementally migrate your routes to route modules.
 
 First create a `routes.ts` file that exports your routes.

@@ -694,7 +694,11 @@ import(${JSON.stringify(manifest.entry.module)});`;
     .concat(nextMatches)
     .map((match) => {
       let route = manifest.routes[match.route.id];
-      return (route.imports || []).concat([route.module]);
+      let preloads = route.imports || [];
+      if (route.module) {
+        preloads.push(route.module);
+      }
+      return preloads;
     })
     .flat(1);
 
