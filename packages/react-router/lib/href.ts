@@ -2,10 +2,17 @@ import type { Register } from "./types/register";
 import type { Equal } from "./types/utils";
 
 type AnyParams = Record<string, Record<string, string | undefined>>;
+
+type IsParamsType<T> = {
+  [K in keyof T]: {
+    [P in keyof T[K]]: string | undefined;
+  };
+};
+
 type Params = Register extends {
-  params: infer RegisteredParams extends AnyParams;
+  params: infer RegisteredParams;
 }
-  ? RegisteredParams
+  ? IsParamsType<RegisteredParams>
   : AnyParams;
 
 type Args = { [K in keyof Params]: ToArgs<Params[K]> };
@@ -34,7 +41,7 @@ export function href<Path extends keyof Args>(
   ...args: Args[Path]
 ): string {
   let params = args[0];
-  return path
+  return String(path)
     .split("/")
     .map((segment) => {
       const match = segment.match(/^:([\w-]+)(\?)?/);

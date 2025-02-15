@@ -1,0 +1,10 @@
+{
+  "name": "transfers",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "devDependencies": {
+    "react-router": "workspace:*",
+    "accounts": "workspace:*"
+  }
+}

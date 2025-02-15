@@ -4,21 +4,26 @@ import * as Pathe from "pathe/utils";
 
 import { type RouteManifestEntry } from "../config/routes";
 import { type Context } from "./context";
-import { getTypesPath } from "./paths";
+import { getTypesPath, searchForPackageRoot } from "./paths";
 import * as Params from "./params";
 import * as Route from "./route";
 
-export function generate(ctx: Context, route: RouteManifestEntry): string {
+export function generate(
+  ctx: Context,
+  route: RouteManifestEntry,
+  typesPath: string
+): string {
   const lineage = Route.lineage(ctx.config.routes, route);
   const fullpath = Route.fullpath(lineage);
-  const typesPath = getTypesPath(ctx, route);
 
   const parents = lineage.slice(0, -1);
   const parentTypeImports = parents
     .map((parent, i) => {
+      const routeFile = Path.join(ctx.config.appDirectory, parent.file);
+      const packageDirectory = searchForPackageRoot(routeFile);
       const rel = Path.relative(
         Path.dirname(typesPath),
-        getTypesPath(ctx, parent)
+        getTypesPath(packageDirectory, routeFile)
       );
 
       const indent = i === 0 ? "" : "  ".repeat(2);

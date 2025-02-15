@@ -2,4 +2,4 @@ packages:
   - "integration"
   - "integration/helpers/*"
   - "packages/*"
-  - "playground/*"
+  - "playground/**"

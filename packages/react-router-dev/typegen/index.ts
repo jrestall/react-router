@@ -10,9 +10,10 @@ import * as Babel from "../vite/babel";
 
 import { generate } from "./generate";
 import type { Context } from "./context";
-import { getTypesDir, getTypesPath } from "./paths";
+import { getTypesDir, getTypesPath, searchForPackageRoot } from "./paths";
 import * as Params from "./params";
 import * as Route from "./route";
+import type { RouteManifest } from "../config/routes";
 
 export async function run(rootDirectory: string) {
   const ctx = await createContext({ rootDirectory, watch: false });
@@ -76,43 +77,53 @@ async function createContext({
 }
 
 async function writeAll(ctx: Context): Promise<void> {
-  const typegenDir = getTypesDir(ctx);
+  const typegenDirs: Record<string, RouteManifest> = {};
 
-  fs.rmSync(typegenDir, { recursive: true, force: true });
-  Object.values(ctx.config.routes).forEach((route) => {
-    const typesPath = getTypesPath(ctx, route);
-    const content = generate(ctx, route);
+  Object.entries(ctx.config.routes).forEach(([id, route]) => {
+    // Given a route file, find its nearest package.json
+    const routeFile = Path.join(ctx.config.appDirectory, route.file);
+    const packageDirectory = searchForPackageRoot(routeFile);
+    const typegenDir = getTypesDir(packageDirectory);
+
+    // Delete the package's existing types directory
+    if (!typegenDirs[typegenDir]) {
+      fs.rmSync(typegenDir, { recursive: true, force: true });
+      typegenDirs[typegenDir] = {};
+
+      console.log("Generated types in ", typegenDir);
+    }
+
+    const typesPath = getTypesPath(packageDirectory, routeFile);
+    const content = generate(ctx, route, typesPath);
     fs.mkdirSync(Path.dirname(typesPath), { recursive: true });
     fs.writeFileSync(typesPath, content);
+
+    // Store the package's routes for generating the +register.ts file
+    typegenDirs[typegenDir][id] = route;
   });
 
-  const registerPath = Path.join(typegenDir, "+register.ts");
-  fs.writeFileSync(registerPath, register(ctx));
+  // Generate the +register.ts file for each package
+  Object.entries(typegenDirs).forEach(([typegenDir, routes]) => {
+    console.log("Generating +register.ts for", typegenDir);
+    const registerPath = Path.join(typegenDir, "+register.ts");
+    fs.writeFileSync(registerPath, register(routes));
+  });
 }
 
-function register(ctx: Context) {
-  const register = ts`
-    import "react-router";
-
-    declare module "react-router" {
-      interface Register {
-        params: Params;
-      }
-    }
-  `;
-
+function register(routes: RouteManifest) {
   const { t } = Babel;
 
-  const typeParams = t.tsTypeAliasDeclaration(
-    t.identifier("Params"),
+  const typeParams = t.tsInterfaceDeclaration(
+    t.identifier("RouteParams"),
     null,
-    t.tsTypeLiteral(
-      Object.values(ctx.config.routes)
+    [],
+    t.tsInterfaceBody(
+      Object.values(routes)
         .map((route) => {
           // filter out pathless (layout) routes
           if (route.id !== "root" && !route.path) return undefined;
 
-          const lineage = Route.lineage(ctx.config.routes, route);
+          const lineage = Route.lineage(routes, route);
           const fullpath = Route.fullpath(lineage);
           const params = Params.parse(fullpath);
           return t.tsPropertySignature(
@@ -135,5 +146,16 @@ function register(ctx: Context) {
     )
   );
 
-  return [register, Babel.generate(typeParams).code].join("\n\n");
+  const routeParams = Babel.generate(typeParams).code;
+  return ts`
+  import "react-router";
+
+  declare module "react-router" {
+    interface Register {
+      params: RouteParams;
+    }
+      
+    ${routeParams}
+  }
+  `;
 }
