@@ -41,7 +41,7 @@ export function href<Path extends keyof Args>(
   ...args: Args[Path]
 ): string {
   let params = args[0];
-  return String(path)
+  return path
     .split("/")
     .map((segment) => {
       const match = segment.match(/^:([\w-]+)(\?)?/);

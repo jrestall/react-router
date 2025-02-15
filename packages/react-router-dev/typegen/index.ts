@@ -89,8 +89,6 @@ async function writeAll(ctx: Context): Promise<void> {
     if (!typegenDirs[typegenDir]) {
       fs.rmSync(typegenDir, { recursive: true, force: true });
       typegenDirs[typegenDir] = {};
-
-      console.log("Generated types in ", typegenDir);
     }
 
     const typesPath = getTypesPath(packageDirectory, routeFile);
@@ -104,7 +102,6 @@ async function writeAll(ctx: Context): Promise<void> {
 
   // Generate the +register.ts file for each package
   Object.entries(typegenDirs).forEach(([typegenDir, routes]) => {
-    console.log("Generating +register.ts for", typegenDir);
     const registerPath = Path.join(typegenDir, "+register.ts");
     fs.writeFileSync(registerPath, register(routes));
   });
